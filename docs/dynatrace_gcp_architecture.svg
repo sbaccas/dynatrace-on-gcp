@@ -1,187 +1,393 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 920" width="1600" height="920">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1750 1120" width="1750" height="1120">
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#e5e5e5"/>
-    </marker>
-    <marker id="arrow-dim" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#a3a3a3"/>
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#374151"/>
     </marker>
     <style>
-      .bg { fill: #050505; }
-      .title { font-family: 'IBM Plex Mono', 'Courier New', monospace; font-size: 20px; font-weight: 700; fill: #ffffff; letter-spacing: 2px; }
-      .subtitle { font-family: 'IBM Plex Mono', 'Courier New', monospace; font-size: 13px; fill: #9ca3af; letter-spacing: 0.8px; }
-      .cluster { fill: #0b0b0b; stroke: #525252; stroke-width: 1.5; stroke-dasharray: 6 4; rx: 6; }
-      .cluster-strong { fill: #0d0d0d; stroke: #d4d4d4; stroke-width: 1.75; rx: 6; }
-      .cluster-label { font-family: 'IBM Plex Mono', 'Courier New', monospace; font-size: 13px; font-weight: 700; fill: #ffffff; letter-spacing: 1px; text-transform: uppercase; }
-      .node { fill: #121212; stroke: #e5e5e5; stroke-width: 1.5; rx: 4; }
-      .node-accent { fill: #171717; stroke: #ffffff; stroke-width: 2; rx: 4; }
-      .node-title { font-family: 'IBM Plex Sans', 'Helvetica Neue', sans-serif; font-size: 14px; font-weight: 700; fill: #ffffff; text-anchor: middle; }
-      .node-sub { font-family: 'IBM Plex Mono', 'Courier New', monospace; font-size: 11.5px; fill: #b5b5b5; text-anchor: middle; }
-      .edge { stroke: #d4d4d4; stroke-width: 1.5; fill: none; }
-      .edge-dashed { stroke: #9ca3af; stroke-width: 1.4; stroke-dasharray: 5 4; fill: none; }
-      .edge-label-bg { fill: #050505; stroke: #404040; stroke-width: 1; rx: 3; }
-      .edge-label { font-family: 'IBM Plex Mono', 'Courier New', monospace; font-size: 10.5px; fill: #d4d4d4; text-anchor: middle; }
-      .pill { fill: #141414; stroke: #a3a3a3; stroke-width: 1.2; rx: 14; }
-      .pill-text { font-family: 'IBM Plex Mono', 'Courier New', monospace; font-size: 11px; font-weight: 600; fill: #e5e5e5; text-anchor: middle; }
+      .bg { fill: #ffffff; }
+      .group-box { fill: #ffffff; stroke: #374151; stroke-width: 1.5; rx: 3; }
+      .group-dashed { fill: #ffffff; stroke: #6b7280; stroke-width: 1.3; stroke-dasharray: 6 4; rx: 3; }
+      .card { fill: #ffffff; stroke: #4b5563; stroke-width: 1.3; rx: 3; }
+      .heading { font-family: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif; font-size: 13px; font-weight: 700; fill: #111827; }
+      .label { font-family: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif; font-size: 12px; font-weight: 600; fill: #111827; text-anchor: middle; }
+      .sub { font-family: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif; font-size: 10.5px; fill: #374151; text-anchor: middle; }
+      .sub-left { font-family: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif; font-size: 10.5px; fill: #374151; }
+      .note { font-family: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif; font-size: 11px; fill: #1f2937; }
+      .mono { font-family: 'IBM Plex Mono', monospace; font-size: 10px; fill: #4b5563; text-anchor: middle; }
+      .wire { stroke: #4b5563; stroke-width: 1.35; fill: none; }
     </style>
+
+    <!-- Authentic GCP Blue Hexagon Icon -->
+    <g id="gcp-hex">
+      <polygon points="0,-15 13,-7.5 13,7.5 0,15 -13,7.5 -13,-7.5" fill="#4285F4"/>
+      <polygon points="0,-15 13,-7.5 13,7.5 0,15" fill="#3367D6" opacity="0.35"/>
+      <circle cx="0" cy="0" r="4.8" fill="#ffffff"/>
+    </g>
+
+    <!-- Authentic ActiveGate Node Icon -->
+    <g id="ag-icon">
+      <rect x="-15" y="-15" width="30" height="30" rx="4" fill="#eff6ff" stroke="#3b82f6" stroke-width="1.4"/>
+      <rect x="-8" y="-8" width="6" height="6" rx="1" fill="#2563eb"/>
+      <rect x="2" y="-8" width="6" height="6" rx="1" fill="#2563eb"/>
+      <rect x="-8" y="2" width="6" height="6" rx="1" fill="#2563eb"/>
+      <rect x="2" y="2" width="6" height="6" rx="1" fill="#38bdf8"/>
+      <line x1="-11" y1="-15" x2="-11" y2="-19" stroke="#3b82f6" stroke-width="1.5"/>
+      <line x1="0" y1="-15" x2="0" y2="-19" stroke="#3b82f6" stroke-width="1.5"/>
+      <line x1="11" y1="-15" x2="11" y2="-19" stroke="#3b82f6" stroke-width="1.5"/>
+    </g>
+
+    <!-- GKE Purple Hexagon Pod Icon -->
+    <g id="gke-pod">
+      <polygon points="0,-11 9.5,-5.5 9.5,5.5 0,11 -9.5,5.5 -9.5,-5.5" fill="#7c3aed"/>
+      <line x1="-4" y1="-4" x2="-4" y2="4" stroke="#ffffff" stroke-width="1.5"/>
+      <line x1="0" y1="-5" x2="0" y2="5" stroke="#ffffff" stroke-width="1.5"/>
+      <line x1="4" y1="-4" x2="4" y2="4" stroke="#ffffff" stroke-width="1.5"/>
+    </g>
   </defs>
 
-  <!-- Background -->
-  <rect width="1600" height="920" class="bg"/>
-  <rect x="20" y="20" width="1560" height="880" fill="none" stroke="#262626" stroke-width="1"/>
+  <!-- White Lucidchart Canvas -->
+  <rect width="1750" height="1120" class="bg"/>
 
-  <!-- Header -->
-  <text x="50" y="58" class="title">DYNATRACE + GOOGLE CLOUD — MULTI-LEVEL FULL-STACK OBSERVABILITY ARCHITECTURE</text>
-  <text x="50" y="80" class="subtitle">3 Telemetry Pillars (Logs · Metrics · Traces) · 4 Collection Tiers (Org Sinks &amp; Scoping · ActiveGate · OneAgent · OpenTelemetry)</text>
-  <line x1="50" y1="95" x2="1550" y2="95" stroke="#333333" stroke-width="1"/>
+  <!-- ======================================================================= -->
+  <!-- 1. TOP LEFT: GOOGLE CLOUD PLATFORM — MISC. INFRA LOGS                   -->
+  <!-- ======================================================================= -->
+  <g transform="translate(505, 28)">
+    <rect x="0" y="0" width="155" height="255" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.2" rx="4"/>
+    <circle cx="16" cy="16" r="5" fill="#4285F4"/>
+    <text x="26" y="20" font-family="'IBM Plex Sans', sans-serif" font-size="10.5" font-weight="600" fill="#475569">Google Cloud Platform</text>
+    <text x="14" y="38" class="heading">Misc. Infra Logs</text>
 
-  <!-- Telemetry Pillars Badges (Top Right) -->
-  <rect x="1030" y="42" width="160" height="30" class="pill"/>
-  <text x="1110" y="61" class="pill-text">01 · LOGS (Events)</text>
+    <use href="#gcp-hex" x="38" y="62"/>
+    <text x="38" y="85" class="sub" font-size="9">Audit Logs</text>
 
-  <rect x="1205" y="42" width="165" height="30" class="pill"/>
-  <text x="1287" y="61" class="pill-text">02 · METRICS (Series)</text>
+    <use href="#gcp-hex" x="38" y="104"/>
+    <text x="38" y="126" class="sub" font-size="9">VPC Flow Logs</text>
 
-  <rect x="1385" y="42" width="165" height="30" class="pill"/>
-  <text x="1467" y="61" class="pill-text">03 · TRACES (Spans)</text>
+    <use href="#gcp-hex" x="38" y="146"/>
+    <text x="38" y="168" class="sub" font-size="9">Firewall Rules Logs</text>
 
-  <!-- ========================================================================= -->
-  <!-- LEFT/CENTER OUTER BOUNDARY: GOOGLE CLOUD ORGANIZATION                     -->
-  <!-- ========================================================================= -->
-  <rect x="50" y="115" width="1110" height="755" class="cluster"/>
-  <text x="72" y="140" class="cluster-label">Google Cloud Organization (Folder Hierarchy &amp; Secure Tag Sharding: &lt;= 375 Projects / Shard)</text>
+    <use href="#gcp-hex" x="38" y="188"/>
+    <text x="38" y="210" class="sub" font-size="9">Cloud NAT Logs</text>
 
-  <!-- TIER 1: BASE PLATFORM & CONTROL PLANE -->
-  <rect x="72" y="156" width="1066" height="162" class="cluster-strong"/>
-  <text x="92" y="180" class="cluster-label">Level 1 · Base Platform Telemetry — Folder/Org Log Sinks &amp; Scoping Projects (Isolated GKE Cluster)</text>
+    <use href="#gcp-hex" x="38" y="230"/>
+    <text x="38" y="250" class="sub" font-size="9">Access / App Logs</text>
 
-  <!-- Logs Row -->
-  <rect x="92" y="194" width="275" height="52" class="node"/>
-  <text x="229" y="216" class="node-title">Folder / Org Cloud Log Sink</text>
-  <text x="229" y="235" class="node-sub">include_children = true</text>
+    <!-- Collector Bus -->
+    <line x1="52" y1="62" x2="144" y2="62" class="wire"/>
+    <line x1="52" y1="104" x2="144" y2="104" class="wire"/>
+    <line x1="52" y1="146" x2="144" y2="146" class="wire"/>
+    <line x1="52" y1="188" x2="144" y2="188" class="wire"/>
+    <line x1="52" y1="230" x2="144" y2="230" class="wire"/>
+    <line x1="144" y1="44" x2="144" y2="262" class="wire"/>
+  </g>
+  <path d="M 649 290 L 649 326 L 710 326 L 710 356" class="wire" marker-end="url(#arrow)"/>
 
-  <rect x="422" y="194" width="275" height="52" class="node"/>
-  <text x="559" y="216" class="node-title">Cloud Pub/Sub Topic &amp; Sub</text>
-  <text x="559" y="235" class="node-sub">dynatrace-logs-sub (Pull Buffer)</text>
+  <!-- ======================================================================= -->
+  <!-- 2. TOP CENTER / RIGHT: WORKLOAD VPC — GCE VMs & GOLDEN IMAGE FACTORY    -->
+  <!-- ======================================================================= -->
+  <g transform="translate(835, 115)">
+    <rect x="0" y="0" width="235" height="150" class="group-box"/>
+    <text x="12" y="20" class="heading">GCE-VMs (Linux &amp; Windows)</text>
 
-  <rect x="752" y="194" width="364" height="52" class="node-accent"/>
-  <text x="934" y="216" class="node-title">GKE Autopilot: Log Forwarder</text>
-  <text x="934" y="235" class="node-sub">Workload Identity · KEDA Autoscaled</text>
+    <rect x="14" y="34" width="82" height="44" class="card"/>
+    <text x="55" y="54" class="label">App + OS</text>
+    <text x="55" y="68" class="sub" font-size="9">Traces · Metrics</text>
 
-  <line x1="367" y1="220" x2="420" y2="220" class="edge" marker-end="url(#arrow)"/>
-  <line x1="697" y1="220" x2="750" y2="220" class="edge" marker-end="url(#arrow)"/>
+    <rect x="118" y="34" width="102" height="52" class="card"/>
+    <text x="169" y="50" class="label" font-size="11">DT-OneAgent</text>
+    <text x="169" y="64" class="sub" font-size="9.5">Packer Golden Img</text>
+    <text x="169" y="77" class="mono" font-size="8.5">systemd zone hook</text>
 
-  <!-- Metrics Row -->
-  <rect x="92" y="254" width="275" height="52" class="node"/>
-  <text x="229" y="276" class="node-title">Monitored GCP Projects</text>
-  <text x="229" y="295" class="node-sub">Tag: observability-shard=shard-N</text>
+    <line x1="96" y1="56" x2="118" y2="56" class="wire" marker-end="url(#arrow)"/>
 
-  <rect x="422" y="254" width="275" height="52" class="node"/>
-  <text x="559" y="276" class="node-title">Scoping Project (1:375 Cap)</text>
-  <text x="559" y="295" class="node-sub">google_monitoring_monitored_project</text>
+    <rect x="14" y="96" width="82" height="38" class="card"/>
+    <text x="55" y="114" class="sub">GCP-Native</text>
+    <text x="55" y="127" class="sub" font-size="9">Infra / OS Logs</text>
+  </g>
 
-  <rect x="752" y="254" width="364" height="52" class="node-accent"/>
-  <text x="934" y="276" class="node-title">GKE Autopilot: Metric Forwarder</text>
-  <text x="934" y="295" class="node-sub">Polls Cloud Monitoring API (150+ Svcs)</text>
+  <!-- Shared VPC / Spoke Workload Projects -->
+  <g transform="translate(1115, 115)">
+    <rect x="0" y="0" width="245" height="150" class="group-box"/>
+    <text x="12" y="20" class="heading">Monitored Workload Projects</text>
 
-  <line x1="367" y1="280" x2="420" y2="280" class="edge" marker-end="url(#arrow)"/>
-  <line x1="697" y1="280" x2="750" y2="280" class="edge" marker-end="url(#arrow)"/>
+    <rect x="14" y="34" width="100" height="48" class="card"/>
+    <text x="64" y="53" class="label" font-size="11">GCP Secure Tag</text>
+    <text x="64" y="69" class="mono" font-size="9">shard-1..N (&lt;=375)</text>
 
-  <!-- TIER 2: IN-VPC REGIONAL ACTIVEGATE CLUSTER & PAAS EXTENSIONS -->
-  <rect x="72" y="340" width="1066" height="160" class="cluster-strong"/>
-  <text x="92" y="364" class="cluster-label">Level 2 · In-VPC Network Proxy &amp; Managed PaaS Extensions — Regional ActiveGate Cluster (:9999)</text>
+    <rect x="132" y="34" width="98" height="48" class="card"/>
+    <text x="181" y="53" class="label" font-size="11">Org Policies</text>
+    <text x="181" y="69" class="sub" font-size="9">Tag &amp; Subnet Guard</text>
 
-  <rect x="92" y="382" width="310" height="100" class="node"/>
-  <text x="247" y="410" class="node-title">Managed GCP PaaS Databases</text>
-  <text x="247" y="432" class="node-sub">AlloyDB for PostgreSQL · Cloud SQL</text>
-  <text x="247" y="450" class="node-sub">Cloud Spanner · Memorystore</text>
-  <text x="247" y="468" class="node-sub">(No OS SSH Access — Polled via VPC)</text>
+    <line x1="114" y1="58" x2="132" y2="58" class="wire"/>
 
-  <rect x="462" y="382" width="654" height="100" class="node-accent"/>
-  <text x="789" y="410" class="node-title">Regional Multi-Zone ActiveGate Cluster (Zone A + Zone B)</text>
-  <text x="789" y="432" class="node-sub">Dedicated /28 Subnet (Private Google Access + Cloud NAT Egress)</text>
-  <text x="789" y="450" class="node-sub">Dynatrace Hub Extensions (Deep SQL Execution Plans, Locks &amp; PaaS Telemetry)</text>
-  <text x="789" y="468" class="node-sub">Network Zone: gcp.&lt;region&gt;.&lt;env&gt; · Client-Side Failover on TCP :9999</text>
+    <rect x="14" y="94" width="216" height="42" class="card"/>
+    <text x="122" y="113" class="label" font-size="11">150+ GCP Service APIs</text>
+    <text x="122" y="128" class="sub" font-size="9.5">GCE · GKE · Pub/Sub · AlloyDB · Cloud SQL</text>
+  </g>
 
-  <line x1="402" y1="432" x2="460" y2="432" class="edge" marker-end="url(#arrow)"/>
+  <!-- Wires from Top Center -->
+  <!-- GCE-VMs GCP-Native -> Cloud Sinks -->
+  <path d="M 890 265 L 890 315 L 765 315 L 765 356" class="wire" marker-end="url(#arrow)"/>
+  <!-- GCE-VMs DT-OneAgent -> Regional ActiveGate for VMs (TCP :9999) -->
+  <path d="M 1055 175 L 1090 175 L 1090 356" class="wire" marker-end="url(#arrow)"/>
+  <!-- Monitored Workload Projects -> Scoping Project -->
+  <path d="M 1237 265 L 1237 305 L 920 305 L 920 632" class="wire" marker-end="url(#arrow)"/>
 
-  <!-- TIER 3: COMPUTE VM INFRASTRUCTURE (LINUX & WINDOWS GCE VMs) -->
-  <rect x="72" y="522" width="1066" height="160" class="cluster-strong"/>
-  <text x="92" y="546" class="cluster-label">Level 3 · Compute VM Infrastructure — Dynatrace OneAgent on Linux &amp; Windows GCE VMs</text>
+  <!-- ======================================================================= -->
+  <!-- 3. MIDDLE LEFT: CORTEX, WIZ & SECURITY COMMAND CENTER                   -->
+  <!-- ======================================================================= -->
+  <g transform="translate(65, 345)">
+    <rect x="0" y="0" width="380" height="68" class="group-box"/>
+    <!-- Cortex Logo -->
+    <circle cx="34" cy="34" r="13" fill="#00a859"/>
+    <path d="M 34 21 A 13 13 0 0 1 47 34 L 34 34 Z" fill="#86efac"/>
+    <text x="56" y="42" font-family="'Space Grotesk', sans-serif" font-size="22" font-weight="700" fill="#111827" letter-spacing="3">CORTEX</text>
+    <!-- Wiz Logo -->
+    <text x="275" y="44" font-family="'Space Grotesk', sans-serif" font-size="26" font-weight="700" fill="#1d4ed8" letter-spacing="1.5">WIZ</text>
+    <polygon points="342,16 345,23 352,26 345,29 342,36 339,29 332,26 339,23" fill="#2563eb"/>
+  </g>
 
-  <rect x="92" y="564" width="310" height="100" class="node"/>
-  <text x="247" y="592" class="node-title">Packer Golden Image Factory</text>
-  <text x="247" y="614" class="node-sub">Pre-baked OneAgent Binary (--set-network-zone=default)</text>
-  <text x="247" y="632" class="node-sub">First-Boot systemd Metadata Zone Hook</text>
-  <text x="247" y="650" class="node-sub">Zero Boot-Time Installer Download Latency</text>
+  <g transform="translate(80, 505)">
+    <rect x="0" y="0" width="355" height="90" class="group-dashed"/>
+    <text x="24" y="20" class="sub-left">Google Cloud threat detection and prevention</text>
+    <use href="#gcp-hex" x="110" y="56" transform="scale(1.25) translate(-22, -11)"/>
+    <text x="235" y="52" class="label">Security Command Center</text>
+    <text x="235" y="68" class="label" fill="#1d4ed8">180+ detectors</text>
+  </g>
+  <path d="M 257 505 L 257 415" class="wire" marker-end="url(#arrow)"/>
 
-  <rect x="462" y="564" width="654" height="100" class="node-accent"/>
-  <text x="789" y="592" class="node-title">Linux &amp; Windows GCE VMs + Dynatrace OneAgent (Full-Stack)</text>
-  <text x="789" y="614" class="node-sub">Automatic Bytecode Injection &amp; PurePath Distributed Traces (Spans)</text>
-  <text x="789" y="632" class="node-sub">OS Process Metrics, Network Smartscape Topology &amp; App Log Scraping</text>
-  <text x="789" y="650" class="node-sub">Routes Logs + Metrics + Traces Privately to Regional ActiveGate (:9999)</text>
+  <!-- Pub/Sub Only Logs feeding into Cortex -->
+  <g transform="translate(550, 405)">
+    <rect x="0" y="0" width="62" height="54" class="card"/>
+    <use href="#gcp-hex" x="31" y="18"/>
+    <text x="31" y="40" class="sub" font-size="8.5">Pub/Sub</text>
+    <text x="31" y="49" class="sub" font-size="8.5">Only Logs</text>
+  </g>
+  <text x="515" y="395" class="sub">Organization logs feed into Cortex</text>
+  <path d="M 550 432 L 500 432 L 500 379 L 447 379" class="wire" marker-end="url(#arrow)"/>
 
-  <line x1="402" y1="614" x2="460" y2="614" class="edge" marker-end="url(#arrow)"/>
+  <!-- ======================================================================= -->
+  <!-- 4. MIDDLE CENTER: CLOUD SINKS (FOLDER, ORG, PROJECT LEVEL)              -->
+  <!-- ======================================================================= -->
+  <g transform="translate(675, 358)">
+    <rect x="0" y="0" width="225" height="132" class="group-box"/>
+    <text x="12" y="19" class="heading">Cloud Sinks</text>
 
-  <!-- Internal VPC Routing Arrow from Tier 3 OneAgent up to Tier 2 ActiveGate -->
-  <line x1="789" y1="564" x2="789" y2="484" class="edge" marker-end="url(#arrow)"/>
-  <rect x="694" y="505" width="190" height="22" class="edge-label-bg"/>
-  <text x="789" y="520" class="edge-label">Private VPC TCP :9999</text>
+    <!-- Folder Sinks -->
+    <rect x="132" y="10" width="80" height="48" class="card"/>
+    <use href="#gcp-hex" x="172" y="28"/>
+    <text x="172" y="52" class="sub" font-size="9">Folder Sinks</text>
 
-  <!-- TIER 4: SERVERLESS, CLOUD RUN & GOOGLE ADK AI AGENTS -->
-  <rect x="72" y="704" width="1066" height="148" class="cluster-strong"/>
-  <text x="92" y="728" class="cluster-label">Level 4 · Serverless &amp; AI Agent Tier — OpenTelemetry (OTel) SDK for Cloud Run &amp; Google ADK</text>
+    <!-- Organization Sink -->
+    <rect x="10" y="70" width="76" height="50" class="card"/>
+    <use href="#gcp-hex" x="48" y="88"/>
+    <text x="48" y="109" class="sub" font-size="8.5">Organization</text>
+    <text x="48" y="117" class="sub" font-size="8.5">Sink</text>
 
-  <rect x="92" y="744" width="310" height="90" class="node"/>
-  <text x="247" y="772" class="node-title">Cloud Run &amp; Google ADK Agents</text>
-  <text x="247" y="794" class="node-sub">Ephemeral Serverless Containers</text>
-  <text x="247" y="812" class="node-sub">Vertex AI Gemini Multi-Agent Calls</text>
+    <!-- Project lv Sinks -->
+    <rect x="132" y="66" width="82" height="56" class="card"/>
+    <text x="173" y="78" class="sub" font-size="8.5">Project lv Sinks</text>
+    <use href="#gcp-hex" x="154" y="96" transform="scale(0.75) translate(51, 32)"/>
+    <use href="#gcp-hex" x="192" y="96" transform="scale(0.75) translate(64, 32)"/>
+    <text x="154" y="116" class="sub" font-size="7.5">_default</text>
+    <text x="192" y="116" class="sub" font-size="7.5">_required</text>
+  </g>
+  <line x1="675" y1="450" x2="614" y2="432" class="wire" marker-end="url(#arrow)"/>
 
-  <rect x="462" y="744" width="654" height="90" class="node-accent"/>
-  <text x="789" y="772" class="node-title">OpenTelemetry (OTel) Library &amp; OTLP Exporter Instrumentation</text>
-  <text x="789" y="794" class="node-sub">Propagates W3C TraceContext across HTTP/gRPC &amp; ADK Sub-Agent Tool Spans</text>
-  <text x="789" y="812" class="node-sub">Exports OTLP Traces (/api/v2/otlp/v1/traces) &amp; Delta Metrics (/v1/metrics)</text>
+  <!-- ======================================================================= -->
+  <!-- 5. MIDDLE RIGHT: WORKLOAD / SHARED VPC ACTIVEGATES & PAAS RESOURCES     -->
+  <!-- ======================================================================= -->
+  <g transform="translate(1015, 325)">
+    <rect x="0" y="0" width="305" height="182" class="group-box"/>
+    <text x="14" y="19" class="heading">Workload VPC (:9999) &amp; Log Buffer</text>
 
-  <line x1="402" y1="789" x2="460" y2="789" class="edge" marker-end="url(#arrow)"/>
+    <!-- ActiveGate for VMs -->
+    <rect x="14" y="30" width="128" height="76" class="card"/>
+    <text x="78" y="44" class="label" font-size="10.5">ActiveGate for VMs</text>
+    <use href="#ag-icon" x="48" y="68"/>
+    <use href="#ag-icon" x="106" y="68"/>
+    <text x="48" y="93" class="sub" font-size="7.5">Zone A (:9999)</text>
+    <text x="106" y="93" class="sub" font-size="7.5">Zone B (:9999)</text>
 
-  <!-- ========================================================================= -->
-  <!-- RIGHT COLUMN: DYNATRACE SAAS PLATFORM                                     -->
-  <!-- ========================================================================= -->
-  <rect x="1210" y="115" width="340" height="755" class="cluster-strong"/>
-  <text x="1232" y="140" class="cluster-label">Dynatrace SaaS Platform</text>
+    <!-- Central Pub/Sub Log Buffer (Observability Project) -->
+    <rect x="18" y="118" width="84" height="52" class="card"/>
+    <use href="#gcp-hex" x="60" y="136"/>
+    <text x="60" y="156" class="sub" font-size="8.5">Pub/Sub Buffer</text>
+    <text x="60" y="165" class="mono" font-size="7.5">dynatrace-logs</text>
 
-  <rect x="1234" y="164" width="292" height="145" class="node-accent"/>
-  <text x="1380" y="192" class="node-title">Unified HTTPS Ingest APIs (:443)</text>
-  <text x="1380" y="216" class="node-sub">POST /api/v2/logs/ingest</text>
-  <text x="1380" y="236" class="node-sub">POST /api/v2/metrics/ingest</text>
-  <text x="1380" y="256" class="node-sub">POST /api/v2/otlp/v1/traces</text>
-  <text x="1380" y="276" class="node-sub">ActiveGate Receiver &amp; dt0c01 Auth</text>
+    <!-- ActiveGate for PaaS extensions -->
+    <rect x="162" y="88" width="128" height="82" class="card"/>
+    <text x="226" y="102" class="label" font-size="10.5">ActiveGate for PaaS</text>
+    <text x="226" y="113" class="sub" font-size="9">Hub Extensions</text>
+    <use href="#ag-icon" x="196" y="138"/>
+    <use href="#ag-icon" x="254" y="138"/>
+    <text x="196" y="163" class="sub" font-size="7.5">Regional AG</text>
+    <text x="254" y="163" class="sub" font-size="7.5">Regional AG</text>
+  </g>
 
-  <rect x="1234" y="338" width="292" height="165" class="node"/>
-  <text x="1380" y="368" class="node-title">Grail Data Lakehouse (DQL)</text>
-  <text x="1380" y="392" class="node-sub">Schema-on-Read Unified Context:</text>
-  <text x="1380" y="414" class="node-sub">· GCP Platform &amp; Audit Logs</text>
-  <text x="1380" y="434" class="node-sub">· 150+ GCP Service Metrics</text>
-  <text x="1380" y="454" class="node-sub">· PurePath &amp; OTel Trace Spans</text>
-  <text x="1380" y="474" class="node-sub">· Correlated via trace_id / span_id</text>
+  <!-- Wire from Cloud Sinks (Folder/Project) to Pub/Sub Buffer -->
+  <path d="M 900 424 L 995 424 L 995 468 L 1031 468" class="wire" marker-end="url(#arrow)"/>
 
-  <rect x="1234" y="532" width="292" height="145" class="node"/>
-  <text x="1380" y="562" class="node-title">Smartscape Topology Graph</text>
-  <text x="1380" y="586" class="node-sub">Real-Time Vertical &amp; Horizontal Map:</text>
-  <text x="1380" y="608" class="node-sub">· GCP Folder / Project / Zone</text>
-  <text x="1380" y="628" class="node-sub">· GCE VM / GKE Pod / Cloud Run</text>
-  <text x="1380" y="648" class="node-sub">· Process → AlloyDB SQL Dependency</text>
+  <!-- PaaS Resources Box (AlloyDB, Cloud SQL, BigQuery) -->
+  <g transform="translate(1415, 375)">
+    <rect x="0" y="0" width="165" height="125" class="group-box"/>
+    <text x="12" y="19" class="heading">Managed PaaS Resources</text>
+    <use href="#gcp-hex" x="45" y="56"/>
+    <text x="45" y="86" class="label" font-size="11">Cloud SQL</text>
+    <circle cx="115" cy="56" r="18" fill="#4285F4"/>
+    <rect x="107" y="50" width="4" height="12" fill="#ffffff"/>
+    <rect x="113" y="46" width="4" height="16" fill="#ffffff"/>
+    <rect x="119" y="53" width="4" height="9" fill="#ffffff"/>
+    <text x="115" y="86" class="label" font-size="11">BigQuery</text>
+    <text x="82" y="110" class="sub" font-size="10">AlloyDB for PostgreSQL</text>
+  </g>
+  <line x1="1415" y1="438" x2="1307" y2="438" class="wire" marker-end="url(#arrow)"/>
 
-  <rect x="1234" y="706" width="292" height="138" class="node"/>
-  <text x="1380" y="736" class="node-title">Davis Causal AI Engine</text>
-  <text x="1380" y="760" class="node-sub">Deterministic Root-Cause Analysis:</text>
-  <text x="1380" y="782" class="node-sub">· Infra Quota / Pub/Sub Backlog</text>
-  <text x="1380" y="802" class="node-sub">· AlloyDB Lock → Service Latency</text>
-  <text x="1380" y="822" class="node-sub">· ADK Agent Tool / Token Anomaly</text>
+  <!-- ======================================================================= -->
+  <!-- 6. BOTTOM CENTER-LEFT: ISOLATED GKE FORWARDER CLUSTER & SCOPING PROJECT -->
+  <!-- ======================================================================= -->
+  <g transform="translate(585, 550)">
+    <rect x="0" y="0" width="245" height="202" class="group-box"/>
+    <text x="12" y="19" class="heading">GKE Autopilot (Isolated VPC)</text>
 
-  <!-- Egress Edges from GCP Tiers to Dynatrace SaaS -->
-  <line x1="1116" y1="220" x2="1232" y2="220" class="edge" marker-end="url(#arrow)"/>
-  <line x1="1116" y1="280" x2="1232" y2="280" class="edge" marker-end="url(#arrow)"/>
-  <line x1="1116" y1="432" x2="1232" y2="250" class="edge" marker-end="url(#arrow)"/>
-  <line x1="1116" y1="789" x2="1232" y2="290" class="edge-dashed" marker-end="url(#arrow-dim)"/>
+    <rect x="10" y="30" width="80" height="46" class="card"/>
+    <text x="50" y="49" class="sub">Integration</text>
+    <text x="50" y="63" class="sub">cluster</text>
+
+    <rect x="122" y="16" width="108" height="54" class="card"/>
+    <text x="176" y="32" class="sub">Dynatrace</text>
+    <text x="176" y="45" class="label" font-size="11">log fwdr pod</text>
+    <text x="176" y="58" class="sub" font-size="9.5">(helm installed)</text>
+
+    <rect x="122" y="78" width="108" height="54" class="card"/>
+    <text x="176" y="94" class="sub">Dynatrace</text>
+    <text x="176" y="107" class="label" font-size="11">metric fwdr pod</text>
+    <text x="176" y="120" class="sub" font-size="9.5">(helm installed)</text>
+
+    <line x1="90" y1="53" x2="122" y2="43" class="wire" marker-end="url(#arrow)"/>
+    <line x1="90" y1="53" x2="122" y2="105" class="wire" marker-end="url(#arrow)"/>
+
+    <rect x="10" y="100" width="94" height="56" class="card"/>
+    <text x="57" y="117" class="sub">GCP Native</text>
+    <text x="57" y="131" class="sub" font-size="9.5">-Control plane logs</text>
+    <text x="57" y="144" class="sub" font-size="9.5">-audit logs etc</text>
+
+    <!-- Kubernetes Services Icon -->
+    <use href="#gke-pod" x="165" y="156"/>
+    <use href="#gke-pod" x="187" y="156"/>
+    <use href="#gke-pod" x="176" y="173"/>
+    <text x="176" y="195" class="sub" font-size="10">Workload Identity</text>
+  </g>
+
+  <!-- Wire from GKE Control Plane Logs up to Project lv Sinks -->
+  <path d="M 585 678 L 548 678 L 548 498 L 850 498 L 850 482" class="wire" marker-end="url(#arrow)"/>
+
+  <!-- Scoping Project Box -->
+  <g transform="translate(875, 632)">
+    <rect x="0" y="0" width="82" height="50" class="card"/>
+    <text x="41" y="21" class="label" font-size="11">Scoping</text>
+    <text x="41" y="35" class="label" font-size="11">Project</text>
+    <text x="41" y="46" class="mono" font-size="8.5">1:375 cap</text>
+  </g>
+  <line x1="815" y1="657" x2="875" y2="657" class="wire"/>
+
+  <!-- Annotations next to GKE Forwarders -->
+  <text x="955" y="535" class="note">Log fwdr pod</text>
+  <text x="955" y="549" class="note">scrapes logs off</text>
+  <text x="955" y="563" class="note">Pub/Sub then</text>
+  <text x="955" y="577" class="note">sends to DT</text>
+
+  <text x="862" y="610" class="note">Metric fwdr pod</text>
+  <text x="862" y="624" class="note">sends direct to DT</text>
+
+  <text x="840" y="706" class="sub-left" font-size="9.5">GKE runs two isolated Helm</text>
+  <text x="840" y="718" class="sub-left" font-size="9.5">releases: a metric forwarder</text>
+  <text x="840" y="730" class="sub-left" font-size="9.5">and a log forwarder. After</text>
+  <text x="840" y="742" class="sub-left" font-size="9.5">installation, you get GCP</text>
+  <text x="840" y="754" class="sub-left" font-size="9.5">metrics, logs, Smartscape</text>
+  <text x="840" y="766" class="sub-left" font-size="9.5">dashboards, and Davis AI</text>
+  <text x="840" y="778" class="sub-left" font-size="9.5">alerts in Dynatrace.</text>
+
+  <!-- ======================================================================= -->
+  <!-- 7. DYNATRACE CENTRAL HUB LOGO                                           -->
+  <!-- ======================================================================= -->
+  <g transform="translate(972, 635)">
+    <polygon points="0,18 22,4 44,18 22,32" fill="#73BE28"/>
+    <polygon points="0,18 22,32 22,56 0,42" fill="#1496FF"/>
+    <polygon points="44,18 44,42 22,56 22,32" fill="#6F2DA8"/>
+    <text x="54" y="45" font-family="'Space Grotesk', 'Helvetica Neue', sans-serif" font-size="42" font-weight="600" fill="#111827">dynatrace</text>
+  </g>
+
+  <!-- Wires into Dynatrace -->
+  <path d="M 815 590 L 1055 590 L 1055 495" class="wire" marker-end="url(#arrow)"/>
+  <path d="M 1055 590 L 1055 645" class="wire" marker-end="url(#arrow)"/>
+  <line x1="957" y1="657" x2="969" y2="657" class="wire" marker-end="url(#arrow)"/>
+  <path d="M 1115 431 L 1115 645" class="wire" marker-end="url(#arrow)"/>
+  <path d="M 1240 495 L 1240 665 L 1210 665" class="wire" marker-end="url(#arrow)"/>
+
+  <!-- ======================================================================= -->
+  <!-- 8. BOTTOM RIGHT: CLOUD RUN, GAE & GOOGLE ADK AGENTS (OTEL-SDK)          -->
+  <!-- ======================================================================= -->
+  <g transform="translate(1355, 615)">
+    <rect x="0" y="0" width="315" height="178" class="group-box"/>
+    <text x="12" y="20" class="heading">Cloud Run / GAE &amp; ADK AI Agents</text>
+
+    <rect x="24" y="42" width="88" height="54" class="card"/>
+    <text x="68" y="59" class="sub">OneAgent</text>
+    <text x="68" y="72" class="sub">installed into</text>
+    <text x="68" y="85" class="label" font-size="10.5">docker img</text>
+
+    <!-- Cloud Run Icon -->
+    <g transform="translate(238, 68)">
+      <polygon points="-18,-16 4,0 -18,16 -10,0" fill="#4285F4"/>
+      <polygon points="-2,-16 20,0 -2,16 6,0" fill="#2563eb"/>
+      <text x="2" y="30" class="label" font-size="11">Cloud Run</text>
+    </g>
+    <line x1="210" y1="68" x2="114" y2="68" class="wire" marker-end="url(#arrow)"/>
+
+    <!-- OTEL-sdk Box -->
+    <rect x="20" y="132" width="76" height="28" class="card"/>
+    <text x="58" y="150" class="label" font-size="11">OTEL-sdk</text>
+
+    <!-- App Engine / ADK Icon -->
+    <g transform="translate(175, 134)">
+      <circle cx="0" cy="0" r="14" fill="none" stroke="#4285F4" stroke-width="2.5"/>
+      <circle cx="0" cy="0" r="6" fill="#2563eb"/>
+      <text x="0" y="28" class="label" font-size="11">GAE / ADK Agents</text>
+    </g>
+    <line x1="154" y1="146" x2="98" y2="146" class="wire" marker-end="url(#arrow)"/>
+    <path d="M 175 116 L 175 104 L 68 104 L 68 98" class="wire" marker-end="url(#arrow)"/>
+  </g>
+
+  <!-- Wires from Cloud Run / GAE to Dynatrace -->
+  <path d="M 1379 672 L 1210 672" class="wire" marker-end="url(#arrow)"/>
+  <path d="M 1375 760 L 1165 760 L 1165 685" class="wire" marker-end="url(#arrow)"/>
+
+  <text x="1370" y="825" class="note">Containerized Cloud Run &amp; GAE can use</text>
+  <text x="1370" y="840" class="note">OneAgent baked into the Docker image or OTel.</text>
+  <text x="1370" y="860" class="note">Serverless GAE &amp; Google ADK / Vertex AI Agents</text>
+  <text x="1370" y="875" class="note">use the OpenTelemetry (OTel) SDK to export</text>
+  <text x="1370" y="890" class="note">OTLP traces, metrics &amp; logs via Dynatrace token.</text>
+
+  <!-- ======================================================================= -->
+  <!-- 9. BOTTOM CENTER: TERRAFORM + HELM INSTALL & GITHUB CI/CD               -->
+  <!-- ======================================================================= -->
+  <g transform="translate(892, 905)">
+    <rect x="0" y="0" width="40" height="50" rx="3" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
+    <line x1="9" y1="15" x2="31" y2="15" stroke="#2563eb" stroke-width="2.5"/>
+    <line x1="9" y1="25" x2="31" y2="25" stroke="#2563eb" stroke-width="2.5"/>
+    <line x1="9" y1="35" x2="25" y2="35" stroke="#2563eb" stroke-width="2.5"/>
+    <text x="20" y="66" class="sub">terraform + helm</text>
+    <text x="20" y="79" class="sub">dynatrace-gcp-monitor</text>
+    <text x="20" y="92" class="sub">values-logs / metrics.yaml</text>
+  </g>
+  <path d="M 912 905 L 912 820 L 752 820 L 752 752" class="wire" marker-end="url(#arrow)"/>
+
+  <!-- GitHub Icon -->
+  <g transform="translate(912, 1062)">
+    <circle cx="0" cy="0" r="18" fill="#111827"/>
+    <circle cx="0" cy="-2" r="10" fill="#ffffff"/>
+    <text x="0" y="32" class="label" font-size="11">GitHub</text>
+  </g>
+  <line x1="912" y1="1042" x2="912" y2="1002" class="wire" marker-end="url(#arrow)"/>
 </svg>

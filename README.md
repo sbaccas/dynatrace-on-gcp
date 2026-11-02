@@ -134,12 +134,21 @@ Deploying observability across a large GCP Organization introduces structural pl
 
 ---
 
-## 5. Quickstart: 5-Step Automated Deployment
+## 5. Turnkey Quickstart: 5-Step Automated Deployment
 
-### Prerequisites
+This repository provides a **turnkey automation suite** that integrates any **Dynatrace SaaS Tenant** with a **Google Cloud Organization** across all four collection levels, driven by a single local configuration file ([`bootstrap/bootstrap.env`](bootstrap/bootstrap.env.example)).
+
+### Prerequisites & Required `bootstrap.env` Assumptions
 - `gcloud` CLI authenticated with Folder/Organization Admin and Project Creator permissions
 - `terraform` ($\ge 1.5$), `kubectl`, `helm` ($\ge 3.12$), and `jq`
-- A **Dynatrace SaaS Tenant** (`https://<your-tenant-id>.live.dynatrace.com`) and a scoped **Dynatrace API Token** (`logs.ingest`, `metrics.ingest`, `entities.read`, `settings.read`, `settings.write`, `activeGateTokenManagement.create`, `InstallerDownload`)
+- Before running `./scripts/00_bootstrap.sh`, populate the following core parameters in `bootstrap/bootstrap.env`:
+
+| Parameter Group | Key Variables in `bootstrap/bootstrap.env` | Assumption / Requirement |
+| :--- | :--- | :--- |
+| **1. GCP Org, Folders & Billing** | `GCP_ORG_ID`, `BILLING_ACCOUNT_ID`, `OBSERVABILITY_FOLDER_ID`, `SCOPING_PROJECTS_FOLDER_ID` | Existing GCP Organization and active Billing Account; `00_bootstrap.sh` creates or reuses the Observability & Scoping folders. |
+| **2. Platform & Scoping Projects** | `GCP_CONTROL_PROJECT_ID`, `GCP_PLATFORM_PROJECT_ID`, `GCP_SCOPING_PROJECT_ID`, `MONITORED_PROJECT_IDS` | `00_bootstrap.sh` provisions the Control (TF state), Platform (isolated GKE + Pub/Sub), and Scoping projects, and attaches the listed `MONITORED_PROJECT_IDS`. |
+| **3. Workload VPC & ActiveGate** | `WORKLOAD_PROJECT_ID`, `ACTIVEGATE_VPC_NAME`, `ACTIVEGATE_ZONES`, `ACTIVEGATE_SUBNET_CIDR`, `ACTIVEGATE_NETWORK_ZONE` | Existing workload/spoke VPC where the multi-zone ActiveGate cluster (`:9999`) and dedicated subnet will be deployed. |
+| **4. Dynatrace Tenant & Token** | `DYNATRACE_URL`, `DYNATRACE_API_TOKEN` | Active Dynatrace SaaS URL (`https://<tenant>.live.dynatrace.com`) and API token (`dt0c01...`) scoped with `logs.ingest`, `metrics.ingest`, `openTelemetryTrace.ingest`, `activeGateTokenManagement.create`, and `InstallerDownload`. |
 
 ### Step 1: Configure Your Environment
 Copy the example environment file and populate your GCP Organization/Folder IDs and Dynatrace credentials (`bootstrap/bootstrap.env` is gitignored to protect your secrets):
