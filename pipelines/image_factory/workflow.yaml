@@ -1,0 +1,50 @@
+# ==============================================================================
+# CI/CD Pipeline: Golden Image Factory (Packer + Google Cloud Compute)
+# ==============================================================================
+# Builds weekly hardened base OS images with Dynatrace OneAgent pre-baked.
+# ==============================================================================
+
+name: "Image Factory - Build Golden Image"
+
+on:
+  schedule:
+    - cron: "0 2 * * 0" # Weekly every Sunday at 02:00 UTC
+  workflow_dispatch:
+    inputs:
+      force_build:
+        description: "Force golden image build"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  build-golden-image:
+    name: "Packer Build Golden Image"
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Checkout Code"
+        uses: actions/checkout@v4
+
+      - name: "Authenticate to Google Cloud"
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: "${{ vars.GCP_WIF_PROVIDER }}"
+          service_account: "image-builder-sa@shared-images-prod.iam.gserviceaccount.com"
+
+      - name: "Setup HashiCorp Packer"
+        uses: hashicorp/setup-packer@main
+        with:
+          version: "1.10.0"
+
+      - name: "Initialize Packer Plugins"
+        run: |
+          packer init pipelines/image_factory/ubuntu-2204-dynatrace.pkr.hcl
+
+      - name: "Build Golden Image"
+        env:
+          PKR_VAR_dynatrace_token: ${{ secrets.DYNATRACE_API_TOKEN }}
+        run: |
+          packer build -color=false pipelines/image_factory/ubuntu-2204-dynatrace.pkr.hcl

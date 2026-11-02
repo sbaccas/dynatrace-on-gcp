@@ -1,0 +1,32 @@
+# ==============================================================================
+# GCP Custom Organization Policy Constraint: Enforce ActiveGate PGA Subnet
+# ==============================================================================
+# Enforces that any subnet tagged or designated for Dynatrace ActiveGate clusters
+# must strictly enforce Private Google Access (PGA) to ensure zero public IP egress.
+# ==============================================================================
+
+# Part 1: Custom Constraint Definition
+name: organizations/123456789012/customConstraints/custom.requireActiveGatePrivateGoogleAccess
+resourceTypes:
+  - compute.googleapis.com/Subnetwork
+actionType: ALLOW
+condition: >-
+  resource.name.contains('activegate') ? resource.privateIpGoogleAccess == true : true
+methodTypes:
+  - CREATE
+  - UPDATE
+displayName: "Require Private Google Access on ActiveGate Subnets"
+description: >-
+  Ensures that any regional subnet hosting Dynatrace ActiveGate nodes has
+  Private Google Access explicitly enabled to prevent public IP leakage.
+
+---
+# Part 2: Organization Policy Enforcement Resource
+apiVersion: orgpolicy.googleapis.com/v2
+kind: Policy
+metadata:
+  name: organizations/123456789012/policies/custom.requireActiveGatePrivateGoogleAccess
+spec:
+  rules:
+    - enforce: true
+

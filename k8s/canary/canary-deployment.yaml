@@ -1,0 +1,68 @@
+# ==============================================================================
+# GKE Canary Diagnostic Workload
+# ==============================================================================
+# Verifies:
+#   1. Pod scheduling across nodes and inter-pod networking
+#   2. Private Google Access (PGA) to Google APIs (monitoring & pubsub)
+#   3. Workload Identity metadata server authentication
+# ==============================================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dynatrace-canary
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: canary-diagnostic-sa
+  namespace: dynatrace-canary
+  annotations:
+    iam.gke.io/gcp-service-account: dt-metric-forwarder@dynatrace-platform-prod.iam.gserviceaccount.com
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: canary-diagnostic
+  namespace: dynatrace-canary
+  labels:
+    app: canary-diagnostic
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: canary-diagnostic
+  template:
+    metadata:
+      labels:
+        app: canary-diagnostic
+    spec:
+      serviceAccountName: canary-diagnostic-sa
+      containers:
+        - name: diagnostic-agent
+          image: curlimages/curl:latest
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              echo "Starting Dynatrace GKE Canary Diagnostic Agent..."
+              while true; do
+                echo "[$(date -u)] Checking Google APIs connectivity over Private Google Access..."
+                # Test connectivity to Cloud Monitoring
+                curl -s -o /dev/null -w "Monitoring API status: %{http_code}\n" https://monitoring.googleapis.com/generate_204 || true
+                # Test connectivity to Pub/Sub
+                curl -s -o /dev/null -w "Pub/Sub API status: %{http_code}\n" https://pubsub.googleapis.com/generate_204 || true
+                # Test GKE Metadata server token acquisition (Workload Identity)
+                TOKEN=$(curl -s -H "Metadata-Flavor: Google" "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token" || echo "FAIL")
+                if echo "$TOKEN" | grep -q "access_token"; then
+                  echo "[$(date -u)] Workload Identity Token: OK"
+                else
+                  echo "[$(date -u)] Workload Identity Token check: Pending/Warning"
+                fi
+                sleep 60
+              done
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "100m"
+              memory: "128Mi"

@@ -1,0 +1,1061 @@
+#     Copyright 2020 Dynatrace LLC
+#
+#     Licensed under the Apache License, Version 2.0 (the "License");
+#     you may not use this file except in compliance with the License.
+#     You may obtain a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+#     Unless required by applicable law or agreed to in writing, software
+#     distributed under the License is distributed on an "AS IS" BASIS,
+#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#     See the License for the specific language governing permissions and
+#     limitations under the License.
+
+
+# COMMON VALUES
+
+# GCP project ID
+gcpProjectId: ""
+# deploymentType:
+# if set to 'metrics' - deploy only one container to send GCP metrics to Dynatrace
+# if set to 'logs' - deploy only one container to send GCP logs to Dynatrace
+# if set to 'all' - deploy two containers to send GCP metrics and logs to Dynatrace
+deploymentType: "all"
+# Dynatrace API token with permissions, according to the deployment type
+# - for deployment type 'logs':
+# API v2: 'logs.ingest'
+# - for deployment type 'metrics':
+# API v2: 'metrics.ingest', 'extensions.read', 'extensions.write', 'extensionConfigurations.read', 'extensionConfigurations.write', 'extensionEnvironment.read', 'extensionEnvironment.write'
+# API v1: 'ReadConfig', 'WriteConfig'
+# - for deployment type 'all':
+# All the above permissions
+#
+# Specify either an API token directly in `dynatraceAccessKey`
+# or a secret name in `dynatraceAccessKeySecretName` to fetch the token from GCP Secret Manager.
+# Precedence is given to `dynatraceAccessKey` if both are provided.
+dynatraceAccessKey: ""
+dynatraceAccessKeySecretName: ""
+# Dynatrace endpoint to ingest metrics and logs, for example:
+# - SaaS: https://<environment_id>.live.dynatrace.com
+# - Managed: https://<cluster_id>.managed.internal.dynatrace.com/e/<environment_id>
+# - Through an environment ActiveGate: https://<active_gate_address>:9999/e/<environment_id> (e.g. https://22.111.98.222:9999/e/abc12345)
+#
+# Specify either an endpoint directly in `dynatraceUrl`
+# or a secret name in `dynatraceUrlSecretName` to fetch the endpoint from GCP Secret Manager.
+# Precedence is given to `dynatraceUrl` if both are provided.
+dynatraceUrl: ""
+dynatraceUrlSecretName: ""
+#
+# dtSecurityContext: Allows to specify the dtSecurityContext used for data segmentation, analysis, and permission mapping within the Dynatrace platform.
+# When empty, the value is equal to the gcpProjectId value.
+# Change it only when you want to use a security context different from the value of the gcpProjectId parameter.
+dtSecurityContext: ""
+#
+# dtSecurityContextUserLabel: OPTIONAL. Name of a GCP label that holds the security context of each resource.
+# Leave empty (default) to use dtSecurityContext for everything, exactly as before.
+#
+# Use it when several teams share one GCP project and each team should see only its own metrics in Dynatrace.
+# Example: your instances have the GCP label "owner" with values like "team-a", "team-b".
+#   dtSecurityContextUserLabel: "owner"
+#   -> metrics of an instance labelled owner=team-a get dt.security_context=team-a
+#   -> metrics of an instance labelled owner=team-b get dt.security_context=team-b
+#   -> metrics of an instance WITHOUT the "owner" label get dt.security_context=<dtSecurityContext> (the default)
+#
+# READ BEFORE ENABLING:
+#   1. dt.security_context controls who can see the data in Dynatrace. Users who see the metrics today
+#      (through the default context) will STOP seeing metrics of labelled resources, unless they also have
+#      access to the label value (e.g. "team-a"). Set up the Dynatrace permissions first.
+#   2. dt.security_context is part of the metric identity. Metrics of labelled resources start as NEW series;
+#      dashboards and alerts filtering on the old context will not show them. The same happens later whenever
+#      the label of a resource is added, removed or changed.
+#   3. Anyone allowed to set labels on GCP resources decides which security context those metrics end up in.
+#   4. Cumulative metrics (counters) cannot get the context from the label, they always use dtSecurityContext.
+#   5. The monitor sends about twice as many requests to the GCP Monitoring API. Check your quota.
+#   6. If no resource in a project has the label (for example the name is misspelled), everything is sent with
+#      the default context and a single message is logged per project. Check the logs after enabling.
+# Test on one project first.
+dtSecurityContextUserLabel: ""
+#
+# includeResourcesWithoutGroupingLabels: OPTIONAL. Only relevant if you use labelsGroupingByService (below).
+# Default false: as before, instances that do NOT have the grouping labels are not monitored at all.
+# Set to true to monitor them too. They are sent without the label dimensions and with the default
+# dt.security_context. Costs about twice as many requests to the GCP Monitoring API for the grouped services.
+includeResourcesWithoutGroupingLabels: false
+
+
+# LOGS VALUES - REQUIRED for 'logs' and 'all' deployment
+
+# project id of log sink pubsub subscription
+# defaults to gcpProjectId if not set
+logsSubscriptionProject: ""
+# subscription id of log sink pubsub subscription
+logsSubscriptionId: ""
+# dynatraceLogIngestUrl OPTIONAL endpoint used to ingest logs to Dynatrace, if it's not wanted to ingest them through dynatraceUrl:
+# - for direct ingest through the Cluster API: https://<environment_id>.live.dynatrace.com
+# - for Environment ActiveGate: https://<active_gate_address>:9999/e/<environment_id> (e.g. https://22.111.98.222:9999/e/abc12345)
+# If not set, dynatraceUrl will be used
+#
+# Specify either an endpoint directly in `dynatraceLogIngestUrl`
+# or a secret name in `dynatraceLogIngestUrlSecretName` to fetch the endpoint from GCP Secret Manager.
+# Precedence is given to `dynatraceLogIngestUrl` if both are provided.
+dynatraceLogIngestUrl: ""
+dynatraceLogIngestUrlSecretName: ""
+
+
+# COMMON VALUES - DEFAULTS
+
+# vcpNetwork: name of an existing VPC Network in which the autopilot cluster will be deployed. By default or when empty, the network named 'default' is used
+vpcNetwork: "default"
+# useCustomSubnet: By default it is false.
+# Change it only when you want to use custom (non-default) vpcNetwork with already created custom subnet.
+# When true, customSubnetName is required
+# Allowed values: true/yes, false/no (notice the lack of quotes)
+useCustomSubnet: false
+# customSubnetName: name of custom subnet. Required when useCustomSubnet is true
+customSubnetName: ""
+
+# requireValidCertificate: if true function requires valid SSL certificates when communicating with Dynatrace cluster
+# may be used to bypass SSL certificates errors when traffic is proxied through Active Gate with self-signed certificate.
+# Allowed values: "true"/"yes", "false"/"no"
+requireValidCertificate: "true"
+# Send custom metrics to GCP to diagnose quickly if your dynatrace-gcp-monitor processes and sends metrics/logs to Dynatrace properly.
+# Allowed values: "true"/"yes", "false"/"no"
+selfMonitoringEnabled: "false"
+# IAM service account name
+serviceAccount: "dynatrace-gcp-monitor-sa"
+# Dynatrace GCP Monitor docker image. Using default value is advised,
+# but can be changed if there is a need to use customized image or specific, tagged version
+dockerImage: "dynatrace/dynatrace-gcp-monitor:v1-latest"
+# The image of th container is pulled by default from Docker hub. If the image is cloned into private registry imagePullSecrets may be required
+#  Allowed values: name of the valid registry credentials secret
+#imagePullSecrets: registry-credential-secret
+# useProxy: depending on value of this flag, function will use proxy settings for either Dynatrace, GCP API or both.
+# if set to ALL: proxy settings will be used for requests to Dynatrace and GCP API
+# if set to DT_ONLY: proxy settings will be used only for requests to Dynatrace or to an existing Active Gate (activeGate.useExisting true)
+# if set to GCP_ONLY: proxy settings will be used only for requests to GCP API
+# if not set: default, proxy settings won't be used
+useProxy: ""
+# httpProxy: set the http proxy address. To be used in conjunction with USE_PROXY.
+httpProxy: ""
+# httpsProxy: set the https proxy address. To be used in conjunction with USE_PROXY.
+httpsProxy: ""
+# keepRefreshingExtensionsConfig: if true, will fetch enabled extensions from DT on each polling, otherwise will only fetch once during startup
+keepRefreshingExtensionsConfig: "true"
+
+# CIDR VALUES - DEFAULTS
+# clusterIpv4Cidr: Set CIDR range for a cluster.
+# Change it if you want to use a custom (non-default) CIDR range for the cluster.
+clusterIpv4Cidr: ""
+# servicesIpv4Cidr: Set CIDR range for cluster services.
+# Change it if you want to use a custom (non-default) CIDR range for services.
+servicesIpv4Cidr: ""
+# useCustomMasterCidr: Sets --enable-private-nodes flag required to use custom CIDR range for the master network.
+# When true, masterIpv4Cidr is required
+useCustomMasterCidr: false
+# masterIpv4Cidr: IPv4 CIDR range to use for the master network (for example 172.16.0.0/28)
+# Ref: https://cloud.google.com/sdk/gcloud/reference/container/clusters/create-auto#--master-ipv4-cidr
+masterIpv4Cidr: ""
+
+
+# LOGS VALUES - DEFAULTS
+
+# max content length of log event. Should be the same or lower than on cluster
+logIngestContentMaxLength: 8192
+# max length of log event attribute value. If it surpasses server limit, Content will be truncated
+logIngestAttributeValueMaxLength: 250
+# max number of log events in single payload to logs ingest endpoint. If it surpasses server limit, payload will be rejected with 413 code
+logIngestRequestMaxEvents: 5000
+# max size in bytes of single payload to logs ingest endpoint. If it surpasses server limit, payload will be rejected with 413 code
+logIngestRequestMaxSize: 1048576
+# max period (in seconds) of sending batched logs to Dynatrace
+logIngestSendingWorkerExecutionPeriod: 60
+# Determines max age of forwarded log event. Should be the same or lower than on cluster
+logIngestEventMaxAgeSeconds: 86400
+# Number of parallel processes to run the whole log monitoring loop
+parallelProcesses: 1
+# Number of workers pulling logs from pubsub concurrently and pushing them to Dynatrace
+numberOfConcurrentLogForwardingLoops: 5
+# Number of concurrent coroutines to pull messages from pub/sub
+numberOfConcurrentMessagePullCoroutines: 10
+# Number of concurrent coroutines to push messages to Dynatrace
+numberOfConcurrentPushCoroutines: 5
+# Maximum number of messages to be retrieved per pull request. 1000 is the maximum allowed by GCP
+processingWorkerPullRequestMaxMessages: 1000
+logResources:
+  requests:
+    memory: "1Gi"
+    cpu: "1.25"
+    ephemeral-storage: "1Gi"
+
+
+# METRICS VALUES - DEFAULTS
+
+# printMetricIngestInput: if true function will output lines of metrics into stdout
+# Allowed values: "true"/"yes", "false"/"no"
+printMetricIngestInput: "false"
+# metricIngestConcurrentPushes: number of concurrent HTTP requests for pushing metrics to Dynatrace.
+# Higher values reduce push time for large metric volumes. Retries with exponential backoff on 429/5xx.
+# Default 1 (sequential) for backward compatibility. Recommended: 10 for high-volume deployments.
+metricIngestConcurrentPushes: 1
+# metricIngestBatchSize: number of ingest lines per HTTP POST to Dynatrace.
+# Larger batches reduce HTTP overhead. Payloads are gzip-compressed automatically.
+# DT API limit is 1MB uncompressed; 3000 lines ≈ 600KB, safe margin.
+# Default 3000.
+metricIngestBatchSize: 3000
+# serviceUsageBooking determines a caller-specified project for quota and billing purposes
+# if set to source: monitoring API calls are booked towards project where K8S container is running
+# if set to destination: monitoring API calls are booked towards project which is monitored
+# REQUIRES serviceusage.services.use Permission granted for Service Account!
+serviceUsageBooking: "source"
+# Metrics polling interval in minutes. Allowed values: 1 - 10
+queryInterval: 3
+#clusterName Cluster Name, should be empty as it's filed by deploy-helm.sh
+clusterName: ""
+# scopingProjectSupportEnabled: set to true when metrics scope is configured, so metrics will be collected from all monitored projects.
+scopingProjectSupportEnabled: "false"
+# excludedProjects: comma separated list of projects that will be excluded from monitoring (e.g. "project-a,project-b,project-c").
+# This parameter is only applicable to Standard deployments (with other projects metrics scope disabled)
+excludedProjects: ""
+# excludedProjectsByPrefix: comma separated list of projects substring that will be excluded from monitoring (e.g. "project-a,proj,pro").
+# This parameter is only applicable to Standard deployments (with other projects metrics scope disabled)
+excludedProjectsByPrefix: ""
+# includedProjects: comma separated list of projects that will be included in monitoring (e.g. "project-a,project-b,project-c").
+# This parameter is only applicable to Standard deployments (with other projects metrics scope disabled)
+includedProjects: ""
+# includedProjectsByPrefix: comma separated list of projects substring that will be included in monitoring (e.g. "project-a,proj,pro").
+# This parameter is only applicable to Standard deployments (with other projects metrics scope disabled)
+includedProjectsByPrefix: ""
+# excludedMetricsAndDimensions: structure containing the metrics and dimensions that will be excluded from monitoring.
+# HOT-RELOADABLE: Changes to this value take effect without pod restart (within 1-2 polling cycles, ~60-90s ConfigMap propagation + polling interval).
+# If you want to exclude a metric, add a "metric" entry. Any global metric matching its prefix will not be ingested.
+# If you want to exclude dimensions from a specific metric, add the "metric" entry and specify the dimensions. Selected dimensions will be cut off and the metric will be ingested without them.
+# Example:
+# this WILL NOT ingest any metric starting with "bigquery.googleapis.com/query/"
+# and WILL ingest "compute.googleapis.com/instance/disk/max_read_bytes_count" but WITHOUT the "storage_type" and "device_type" dimensions.
+#
+# excludedMetricsAndDimensions: |
+#   filter_out:
+#   - metric: bigquery.googleapis.com/query/
+#   - metric: compute.googleapis.com/instance/disk/max_read_bytes_count
+#     dimensions:
+#       - storage_type
+#       - device_type
+#
+excludedMetricsAndDimensions: |
+  filter_out:
+#   - metric: metric_1
+#   - metric: metric_2
+#     dimensions:
+#       - dimension_A
+#
+# (PREVIEW FEATURE) labelsGroupingByService: structure of groups by which metrics will be queried per service. Groups are based on user metadata labels on the resources.
+# HOT-RELOADABLE: Changes to this value take effect without pod restart (within 1-2 polling cycles, ~60-90s ConfigMap propagation + polling interval).
+# Ref: https://cloud.google.com/resource-manager/docs/labels-overview
+# Metrics queries will be sent per grouping, according to the GroupBy behavior of Google Metric Explorer.
+# NOTE: Be careful while defining mutually exclusive groupings not to query metrics more than once.
+# Example:
+# Use the extension service name for regular metrics (for example cloudsql_database).
+# For standalone autodiscovery resources from autodiscoveryResourcesYaml, use the GCP monitored resource type (for example redis.googleapis.com/Cluster).
+# Instances with both labels will be monitored and metrics will be decorated with dimensions from both labels.
+# Metrics from instances which do NOT have these labels will be dropped because they do not belong to the defined grouping,
+# unless includeResourcesWithoutGroupingLabels is set to true.
+#
+# labelsGroupingByService: |
+#   services:
+#   - service: cloudsql_database
+#     groupings:
+#       - stage,owner
+#   - service: redis.googleapis.com/Cluster
+#     groupings:
+#       - env,team
+#
+labelsGroupingByService: |
+  services:
+#   - service: service_A
+#     groupings:
+#       - user_label_1,user_label_2,user_label_3
+#   - service: service_B
+#     groupings:
+#       - user_label_4,user_label_5
+#       - user_label_6
+metricResources:
+  requests:
+    memory: "1536Mi"
+    cpu: "1.25"
+    ephemeral-storage: "2Gi"
+# metricAutodiscovery: If true additional metrics not listed in extensions will be automatically detected and monitored
+metricAutodiscovery: "false"
+# configuration file for GCP services
+# HOT-RELOADABLE: Changes to this value take effect without pod restart (within 1-2 polling cycles,
+#   ~60-90s ConfigMap propagation + polling interval). Requires keepRefreshingExtensionsConfig: "true".
+gcpServicesYaml: |
+  # filter_conditions with https://cloud.google.com/monitoring/api/v3/filters?hl=en_US syntax
+  #
+  # minSamplePeriodOverride (optional, per-service):
+  #   Overrides the minimum sample period (alignmentPeriod) for all metrics of this service.
+  #   When set, any metric whose extension-defined samplePeriod is lower than this value
+  #   will use this value instead. This reduces the number of data points fetched from
+  #   GCP Monitoring API and ingested into Dynatrace.
+  #   Example: minSamplePeriodOverride: 300  # align all metrics to at least 5 minutes
+  #
+  services:
+    # Google Cloud APIs
+    - service: api
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+    #     - limited_response_codes
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Apigee Environment
+    - service: apigee_googleapis_com_Environment
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Apigee Proxy
+    - service: apigee_googleapis_com_Proxy
+      allowAutodiscovery: false
+      featureSets:
+        - apigee_classic_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Apigee Proxy (v2)
+    - service: apigee_googleapis_com_ProxyV2
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Apigee Target
+    - service: apigee_googleapis_com_Target
+      allowAutodiscovery: false
+      featureSets:
+        - apigee_classic_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Apigee Target (v2)
+    - service: apigee_googleapis_com_TargetV2
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Security Detection Rule
+    - service: apigee_googleapis_com_SecurityDetectionRule
+      allowAutodiscovery: false
+      featureSets:
+        - apigee_security_alerts
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+     # Google Security Incident
+    - service: apigee_googleapis_com_SecurityIncident
+      allowAutodiscovery: false
+      featureSets:
+        - apigee_security_alerts
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Security Profile Environment Association
+    - service: apigee_googleapis_com_SecurityProfileEnvironmentAssociation
+      allowAutodiscovery: false
+      featureSets:
+        - apigee_security_alerts
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Assistant Action Project
+    - service: assistant_action_project
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Autoscaler
+    - service: autoscaler
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Cloud BigQuery BI Engine Model
+    - service: bigquery_biengine_model
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Cloud BigQuery Project
+    - service: bigquery_project
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Cloud Bigtable Cluster
+    - service: bigtable_cluster
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Cloud Bigtable Table
+    - service: bigtable_table
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Cloud IoT Registry
+    - service: cloudiot_device_registry
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Cloud ML Job
+    - service: cloudml_job
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Cloud ML Model Version
+    - service: cloudml_model_version
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Cloud SQL Database
+    - service: cloudsql_database
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      #   - postgresqlinsights
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Cloud Trace
+    # Autodiscovery not supported
+    - service: cloudtrace_googleapis_com_CloudtraceProject
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google NetApp Volumes
+    - service: netapp_volumes_volume
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Cloud Composer Environment
+    - service: cloud_composer_environment
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Cloud Dataproc Cluster
+    - service: cloud_dataproc_cluster
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Cloud Data Loss Prevention Project
+    - service: cloud_dlp_project
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Cloud Function
+    - service: cloud_function
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Cloud Run Revision
+    - service: cloud_run_revision
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Cloud Run Job
+    - service: cloud_run_job
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Cloud Tasks queues
+    - service: cloud_tasks_queue
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Consumed API
+    - service: consumed_api
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics    
+        - limited_response_codes
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Consumer Quota
+    - service: consumer_quota
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Dataflow Job
+    - service: dataflow_job
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Cloud Datastore
+    - service: datastore_request
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Cloud DNS Query
+    - service: dns_query
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Filestore Instance
+    - service: filestore_instance
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Firebase Hosting Site Domain
+    - service: firebase_domain
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Firebase Realtime Database
+    - service: firebase_namespace
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Firestore Instance
+    - service: firestore_instance
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Firestore Database
+    - service: firestore_database
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google App Engine Application
+    - service: gae_app
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google App Engine Application - Uptime Checks
+    # Autodiscovery not supported
+    - service: gae_app_uptime_check
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google App Engine Instance
+    - service: gae_instance
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google VM Instance
+    - service: gce_instance
+      allowAutodiscovery: false
+      featureSets:
+       - default_metrics
+      #  - agent
+      #  - firewallinsights
+      #  - istio
+      #  - uptime_check
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google VM Instance VM Flow
+    - service: gce_instance_vm_flow
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Cloud Router
+    - service: gce_router
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Zone Network Health
+    - service: gce_zone_network_health
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Cloud Storage bucket
+    - service: gcs_bucket
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Cloud HTTP/S Load Balancing Rule
+    - service: https_lb_rule
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Instance Group
+    - service: instance_group
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Interconnect
+    - service: interconnect
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Interconnect Attachment
+    - service: interconnect_attachment
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Internal HTTP/S Load Balancing Rule
+    - service: internal_http_lb_rule
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Internal TCP Load Balancer Rule
+    - service: internal_tcp_lb_rule
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Internal UDP Load Balancer Rule
+    - service: internal_udp_lb_rule
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Network TCP Load Balancer Rule
+    - service: tcp_lb_rule
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Network UDP Load Balancer Rule
+    - service: udp_lb_rule
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Kubernetes Cluster
+    - service: k8s_cluster
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Kubernetes Container
+    - service: k8s_container
+      allowAutodiscovery: false
+      featureSets:
+       # We recommend to monitor k8s_container/default_metrics together with k8s_node/default_metrics, k8s_pod/default_metrics
+       - default_metrics
+      #  - agent
+      #  - apigee
+      #  - istio
+      #  - nginx
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+      #  filter_conditions: resource.labels.location = "us-central1-c" AND resource.labels.namespace_name != "jenkins"
+    # Google Kubernetes Node
+    - service: k8s_node
+      allowAutodiscovery: false
+      featureSets:
+        # We recommend to monitor k8s_node/default_metrics together with k8s_pod/default_metrics, k8s_container/default_metrics
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Kubernetes Pod
+    - service: k8s_pod
+      allowAutodiscovery: false
+      featureSets:
+       # We recommend to monitor k8s_pod/default_metrics together with k8s_node/default_metrics, k8s_container/default_metrics
+       - default_metrics
+      #  - istio
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Cloud Logging export sink
+    # Autodiscovery not supported
+    - service: logging_sink
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Cloud Microsoft Active Directory Domain
+    - service: microsoft_ad_domain
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Cloud NAT Gateway
+    - service: nat_gateway
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google NetApp Cloud Volume Replication
+    - service: netapp_volumes_replication
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google NetApp Cloud Volume Storage Pool
+    - service: netapp_volumes_storage_pool
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Network Security Policy
+    - service: network_security_policy
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Producer Quota
+    - service: producer_quota
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Pub/Sub Lite Subscription Partition
+    - service: pubsublite_subscription_partition
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Pub/Sub Lite Topic Partition
+    - service: pubsublite_topic_partition
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Cloud Pub/Sub Snapshot
+    - service: pubsub_snapshot
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Cloud Pub/Sub Subscription
+    - service: pubsub_subscription
+      allowAutodiscovery: false
+      featureSets:
+        # We recommend to monitor pubsub_subscription/default_metrics together with pubsub_topic/default_metrics
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Cloud Pub/Sub Topic
+    - service: pubsub_topic
+      allowAutodiscovery: false
+      featureSets:
+        # We recommend to monitor pubsub_topic/default_metrics together with pubsub_subscription/default_metrics
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google reCAPTCHA Key
+    - service: recaptchaenterprise_googleapis_com_Key
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Cloud Memorystore
+    - service: redis_instance
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Cloud Spanner Instance
+    - service: spanner_instance
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Cloud TCP/SSL Proxy Rule
+    - service: tcp_ssl_proxy_rule
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Cloud TPU Worker
+    - service: tpu_worker
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Transfer Service Agent
+    - service: transfer_service_agent
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Storage Transfer Job
+    - service: storage_transfer_job
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Uptime Check URL
+    # Autodiscovery not supported
+    - service: uptime_url
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google VPC Access Connector
+    - service: vpc_access_connector
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Cloud VPN Tunnel
+    - service: vpn_gateway
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google AlloyDB for PostgreSQL
+    - service: alloydb_database
+      allowAutodiscovery: false
+      featureSets:
+        - insights_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    - service: alloydb_instance
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    # Google Vertex AI
+    - service: vertex_ai_deployment_resource_pool
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    - service: vertex_ai_endpoint
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    - service: vertex_ai_feature_online_store
+      allowAutodiscovery: false
+      featureSets:
+        - feature_store
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    - service: vertex_ai_feature_store
+      allowAutodiscovery: false
+      featureSets:
+        - feature_store
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    - service: vertex_ai_location
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    - service: vertex_ai_pipeline_job
+      allowAutodiscovery: false
+      featureSets:
+        - pipelines
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    - service: vertex_ai_index
+      allowAutodiscovery: false
+      featureSets:
+        - vector_search
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    - service: vertex_ai_index_endpoint
+      allowAutodiscovery: false
+      featureSets:
+        - vector_search
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    - service: vertex_ai_publisher_model
+      allowAutodiscovery: false
+      featureSets:
+        - default_metrics
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    - service: vision_ai_instance
+      allowAutodiscovery: false
+      featureSets:
+        - vision_ai
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""
+    - service: vision_ai_stream
+      allowAutodiscovery: false
+      featureSets:
+        - vision_ai
+      # minSamplePeriodOverride: 300
+      vars:
+        filter_conditions: ""

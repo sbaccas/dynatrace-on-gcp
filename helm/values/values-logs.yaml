@@ -1,0 +1,29 @@
+# ==============================================================================
+# Dynatrace GCP Monitor - Log Forwarder Configuration
+# ==============================================================================
+# NOTE: Environment-specific values (dynatraceUrl, dynatraceAccessKey, project
+# IDs) are injected at deployment time by ./scripts/02_deploy_forwarders.sh
+# from your local gitignored bootstrap/bootstrap.env.
+# ==============================================================================
+deploymentType: "logs"
+
+gcpProjectId: "dynatrace-platform-prod"
+
+dynatraceUrl: "https://<your-environment-id>.live.dynatrace.com"
+dynatraceAccessKey: ""
+
+logsSubscriptionProject: "dynatrace-platform-prod"
+logsSubscriptionId: "dynatrace-gcp-logs-sub"
+
+serviceAccount: "dynatrace-gcp-monitor-logs"
+gcpServiceAccount: "dt-log-forwarder@dynatrace-platform-prod.iam.gserviceaccount.com"
+
+logResources:
+  requests:
+    cpu: "250m"
+    memory: "512Mi"
+  limits:
+    cpu: "1000m"
+    memory: "2048Mi"
+
+

@@ -1,0 +1,19 @@
+# Example Terraform Variables Configuration
+# Automatically generated at runtime by ./scripts/00_bootstrap.sh from bootstrap/bootstrap.env
+
+project_id              = "dynatrace-platform-prod"
+region                  = "us-central1"
+zone                    = "us-central1-a"
+cluster_name            = "dynatrace-forwarder-gke"
+machine_type            = "e2-standard-2"
+scoping_project_id      = "dynatrace-scope-01-prod"
+monitored_project_ids   = ["dynatrace-platform-prod", "workload-app-prod"]
+workload_project_id     = "workload-app-prod"
+workload_vpc_name       = "workload-vpc"
+activegate_zones        = ["us-central1-a", "us-central1-b"]
+activegate_subnet_name  = "workload-activegate-subnet"
+activegate_subnet_cidr  = "10.10.2.0/24"
+activegate_source_cidrs = ["10.10.0.0/24", "10.10.2.0/24"]
+dynatrace_url           = "https://<your-environment-id>.live.dynatrace.com"
+dynatrace_api_token     = "dt0c01.<your-token-public-id>.<your-token-secret>"
+activegate_network_zone = "workload-prod"

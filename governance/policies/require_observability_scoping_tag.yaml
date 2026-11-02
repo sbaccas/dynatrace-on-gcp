@@ -1,0 +1,33 @@
+# ==============================================================================
+# GCP Custom Organization Policy Constraint: Require Observability Scoping Tag
+# ==============================================================================
+# Enforces that every project stamped out across the enterprise MUST have an
+# assigned Dynatrace Metrics Scope Secure Tag (e.g. dynatrace-scope-01).
+# Projects without this tag are rejected at API submission time.
+# ==============================================================================
+
+# Part 1: Custom Constraint Definition (Installed by Org Admin)
+name: organizations/123456789012/customConstraints/custom.requireObservabilityScopingTag
+resourceTypes:
+  - cloudresourcemanager.googleapis.com/Project
+actionType: ALLOW
+condition: >-
+  resource.tags.exists(k, k.endsWith('/observability_scoping_project')) &&
+  resource.tags.exists(k, resource.tags[k] in ['dynatrace-scope-01', 'dynatrace-scope-02', 'dynatrace-scope-03'])
+methodTypes:
+  - CREATE
+displayName: "Require Observability Scoping Project Tag"
+description: >-
+  Denies project creation unless a valid Dynatrace Metrics Scoping Shard Secure Tag
+  is bound to the project. Guarantees zero unmonitored shadow projects.
+
+---
+# Part 2: Organization Policy Enforcement Resource (Applied at Org Root or Workloads Folder)
+apiVersion: orgpolicy.googleapis.com/v2
+kind: Policy
+metadata:
+  name: organizations/123456789012/policies/custom.requireObservabilityScopingTag
+spec:
+  rules:
+    - enforce: true
+

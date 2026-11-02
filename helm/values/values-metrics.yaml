@@ -1,0 +1,44 @@
+# ==============================================================================
+# Dynatrace GCP Monitor - Metric Forwarder Configuration
+# ==============================================================================
+# NOTE: Environment-specific values (dynatraceUrl, dynatraceAccessKey, scoping
+# project ID) are injected at deployment time by ./scripts/02_deploy_forwarders.sh
+# from your local gitignored bootstrap/bootstrap.env.
+# ==============================================================================
+deploymentType: "metrics"
+
+gcpProjectId: "dynatrace-scope-01-prod"
+scopingProjectSupportEnabled: "true"
+
+dynatraceUrl: "https://<your-environment-id>.live.dynatrace.com"
+dynatraceAccessKey: ""
+
+serviceAccount: "dynatrace-gcp-monitor-metrics"
+gcpServiceAccount: "dt-metric-forwarder@dynatrace-platform-prod.iam.gserviceaccount.com"
+
+
+# Polling frequency in minutes
+queryInterval: "1"
+
+# Enable autodiscovery of GCP metrics
+metricAutodiscovery: "true"
+autodiscoveryQueryInterval: 5
+autodiscoveryIncludeAlphaMetrics: false
+autodiscoveryResourcesYaml: |
+  autodiscovery_config:
+    searched_resources:
+      - gce_instance
+      - k8s_node
+      - k8s_container
+      - pubsub_topic
+      - pubsub_subscription
+      - cloud_run_revision
+
+metricResources:
+  requests:
+    cpu: "250m"
+    memory: "512Mi"
+  limits:
+    cpu: "1000m"
+    memory: "1536Mi"
+

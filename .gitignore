@@ -1,0 +1,24 @@
+# Terraform state & generated environment configs
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+terraform/environments/*/backend.tf
+tfplan
+
+# Secrets & local environment configuration
+.env
+*.env
+!*.env.example
+bootstrap/bootstrap.env
+helm/values/*.local.yaml
+notes.sh
+
+# Personal website clone (tracked in its own repository)
+sbaccas.github.io/
+
+# OS & logs
+.DS_Store
+*.log

@@ -1,0 +1,160 @@
+# ==============================================================================
+# CI/CD Pipeline: GCP Project Factory with Automated Dynatrace Sharding
+# ==============================================================================
+# Automated GitHub Actions / Cloud Build workflow for provisioning new GCP
+# workload projects with automated 375-project Scoping Project Sharding and
+# cryptographic Secure Tag assignment.
+# ==============================================================================
+
+name: "Landing Zone - Project Factory"
+
+on:
+  workflow_dispatch:
+    inputs:
+      project_id:
+        description: "New GCP Project ID (e.g. billing-app-prod)"
+        required: true
+        type: string
+      folder_id:
+        description: "Target Folder ID (e.g. 987654321)"
+        required: true
+        type: string
+      billing_account_id:
+        description: "Billing Account ID"
+        required: true
+        default: "000000-000000-000000"
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  provision-and-shard:
+    name: "Provision Project & Assign Scoping Shard"
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Checkout Infrastructure Repository"
+        uses: actions/checkout@v4
+
+      - name: "Authenticate to Google Cloud via Workload Identity Federation"
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: "${{ vars.GCP_WIF_PROVIDER }}"
+          service_account: "project-factory-sa@dynatrace-control-prod.iam.gserviceaccount.com"
+
+      - name: "Set up Cloud SDK"
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: "1. Evaluate Current Scoping Shard Capacity"
+        id: shard_eval
+        run: |
+          set -euo pipefail
+          SHARD_FOLDER_ID="${{ vars.SCOPING_PROJECTS_FOLDER_ID }}" # Dedicated Scoping Projects folder
+          THRESHOLD=350 # Buffer of 25 projects before hard 375 cap
+
+          # List existing scoping projects sorted by name
+          SCOPING_PROJECTS=$(gcloud projects list \
+            --filter="parent.id=${SHARD_FOLDER_ID}" \
+            --format="value(projectId)" | sort)
+
+          CURRENT_SHARD=$(echo "$SCOPING_PROJECTS" | tail -n 1)
+          if [[ -z "$CURRENT_SHARD" ]]; then
+            CURRENT_SHARD="dynatrace-scope-01-prod"
+          fi
+
+          # Count currently monitored projects in active scope
+          COUNT=$(gcloud monitoring metrics-scopes list \
+            --project="${CURRENT_SHARD}" \
+            --format="value(monitoredProjects)" | tr ';' '\n' | grep -v "^$" | wc -l || echo 0)
+
+          echo "Current active shard: ${CURRENT_SHARD}"
+          echo "Monitored projects count: ${COUNT} / 375"
+
+          if [[ "$COUNT" -ge "$THRESHOLD" ]]; then
+            # Extract shard index number and increment
+            CURRENT_NUM=$(echo "$CURRENT_SHARD" | grep -o '[0-9]\+' | tail -n 1)
+            NEXT_NUM=$((10#$CURRENT_NUM + 1))
+            NEXT_SHARD=$(printf "dynatrace-scope-%02d-prod" "$NEXT_NUM")
+            NEXT_TAG_VALUE=$(printf "dynatrace-scope-%02d" "$NEXT_NUM")
+            echo "NEED_NEW_SHARD=true" >> "$GITHUB_OUTPUT"
+            echo "TARGET_SHARD=${NEXT_SHARD}" >> "$GITHUB_OUTPUT"
+            echo "TAG_VALUE=${NEXT_TAG_VALUE}" >> "$GITHUB_OUTPUT"
+          else
+            SHARD_TAG=$(echo "$CURRENT_SHARD" | sed 's/-prod//')
+            echo "NEED_NEW_SHARD=false" >> "$GITHUB_OUTPUT"
+            echo "TARGET_SHARD=${CURRENT_SHARD}" >> "$GITHUB_OUTPUT"
+            echo "TAG_VALUE=${SHARD_TAG}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: "2. Automatically Provision Next Shard (If Threshold Reached)"
+        if: steps.shard_eval.outputs.NEED_NEW_SHARD == 'true'
+        run: |
+          set -euo pipefail
+          NEW_SHARD="${{ steps.shard_eval.outputs.TARGET_SHARD }}"
+          TAG_VAL="${{ steps.shard_eval.outputs.TAG_VALUE }}"
+          SHARD_FOLDER="${{ vars.SCOPING_PROJECTS_FOLDER_ID }}"
+          ORG_ID="${{ vars.GCP_ORG_ID }}"
+
+          echo "Provisioning new empty scoping project: ${NEW_SHARD}..."
+          gcloud projects create "$NEW_SHARD" \
+            --folder="$SHARD_FOLDER" \
+            --name="Dynatrace Scoping Project ${TAG_VAL}"
+
+          gcloud billing projects link "$NEW_SHARD" \
+            --billing-account="${{ inputs.billing_account_id }}"
+
+          gcloud services enable monitoring.googleapis.com --project="$NEW_SHARD"
+
+          # Add Tag Value under Organization Tag Key
+          TAG_KEY="organizations/${ORG_ID}/tagKeys/observability_scoping_project"
+          gcloud resource-manager tags values create "$TAG_VAL" \
+            --parent="$TAG_KEY" \
+            --description="Metrics Scope Pool ${TAG_VAL}"
+
+          # Scale GKE Forwarder deployment for the new shard
+          gcloud container clusters get-credentials dynatrace-forwarder-gke \
+            --zone="${{ vars.GCP_ZONE }}" \
+            --project="dynatrace-platform-prod"
+
+          helm upgrade --install "${TAG_VAL}-metrics" ./helm/dynatrace-gcp-monitor \
+            --namespace dynatrace \
+            --values ./helm/values/values-metrics.yaml \
+            --set gcpProjectId="${NEW_SHARD}"
+
+      - name: "3. Provision Workload Project"
+        run: |
+          set -euo pipefail
+          NEW_PROJECT="${{ inputs.project_id }}"
+          FOLDER_ID="${{ inputs.folder_id }}"
+
+          echo "Creating workload project: ${NEW_PROJECT} in folder ${FOLDER_ID}..."
+          gcloud projects create "$NEW_PROJECT" \
+            --folder="$FOLDER_ID" \
+            --name="${NEW_PROJECT}"
+
+          gcloud billing projects link "$NEW_PROJECT" \
+            --billing-account="${{ inputs.billing_account_id }}"
+
+      - name: "4. Bind Secure Tag & Associate with Metrics Scope"
+        run: |
+          set -euo pipefail
+          NEW_PROJECT="${{ inputs.project_id }}"
+          TARGET_SHARD="${{ steps.shard_eval.outputs.TARGET_SHARD }}"
+          TAG_VAL="${{ steps.shard_eval.outputs.TAG_VALUE }}"
+          ORG_ID="${{ vars.GCP_ORG_ID }}"
+
+          echo "Attaching cryptographically governed Secure Tag..."
+          TAG_KEY="organizations/${ORG_ID}/tagKeys/observability_scoping_project"
+          TAG_VALUE_ID=$(gcloud resource-manager tags values describe "${TAG_KEY}/${TAG_VAL}" --format="value(name)")
+
+          gcloud resource-manager tags bindings create \
+            --tag-value="$TAG_VALUE_ID" \
+            --parent="//cloudresourcemanager.googleapis.com/projects/${NEW_PROJECT}"
+
+          echo "Associating ${NEW_PROJECT} with Metrics Scoping Project ${TARGET_SHARD}..."
+          gcloud monitoring metrics-scopes create \
+            --scoping-project="${TARGET_SHARD}" \
+            --monitored-project="${NEW_PROJECT}"
+
+          echo "[SUCCESS] Project ${NEW_PROJECT} onboarded to Dynatrace scope ${TARGET_SHARD}!"

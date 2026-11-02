@@ -1,0 +1,9 @@
+# Example Terraform GCS Backend Configuration
+# Automatically generated at runtime by ./scripts/00_bootstrap.sh from bootstrap/bootstrap.env
+
+terraform {
+  backend "gcs" {
+    bucket = "dynatrace-control-tfstate-123456789012"
+    prefix = "terraform/state/observability-platform"
+  }
+}
